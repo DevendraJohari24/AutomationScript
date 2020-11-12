@@ -1,8 +1,9 @@
 import subprocess
 import shutil
 import os
+from colorama import Fore
 
-class LVM:
+class LVM():
     def __init__(self, size="", disk_name="", source_name="", mount_folder="", increase_size="", decrease_size="", hd_name=""):
         self.__size = size
         self.__disk_name = disk_name
@@ -11,6 +12,17 @@ class LVM:
         self.__increase_size = increase_size
         self.__decrease_size = decrease_size
         self.__hd_name = hd_name
+        print("\n\n\n")
+        print(Fore.RED +"\ " + Fore.GREEN +  "/" + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED +  "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN  + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED  + "\ " + Fore.GREEN +  "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED +"\ " + Fore.GREEN +  "/")
+        print(Fore.GREEN + "\                                                                    /")
+        print(Fore.RED + "\             ::          ::        ::      :::      :::             /")
+        print(Fore.GREEN + "\             ::           ::      ::       :: ::  :: ::             /")
+        print(Fore.RED + "\             ::            ::    ::        ::   ::   ::             /")
+        print(Fore.GREEN + "\             ::              :: ::         ::        ::             /")
+        print(Fore.RED + "\             ::::::::         ::           ::        ::             /")
+        print(Fore.GREEN + "\                                                                    /")
+        print(Fore.RED +"\ " + Fore.GREEN +  "/" + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED +  "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN  + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED  + "\ " + Fore.GREEN +  "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED + "\ " + Fore.GREEN + "/ " + Fore.RED +"\ " + Fore.GREEN +  "/")
+        print("\n\n\n")
 
     def showUnusedStorage(self):
         print("Showing all partitions in your OS....")
