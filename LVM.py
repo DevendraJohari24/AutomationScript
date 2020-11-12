@@ -1,70 +1,6 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-import pyttsx3
-import datetime
-import speech_recognition as sr
 import subprocess
 import shutil
 import os
-
-engine = pyttsx3.init('sapi5')
-voices = engine.getProperty('voices')
-engine.setProperty('voice', voices[1].id)
-
-def speak(audio):
-    engine.say(audio)
-    engine.runAndWait()
-
-
-def usrname():
-    speak("What should i call you sir")
-    uname = takeCommand()
-    speak("Welcome Mister")
-    speak(uname)
-    columns = shutil.get_terminal_size().columns
-
-    print("#####################".center(columns))
-    print("Welcome Mr.", uname.center(columns))
-    print("#####################".center(columns))
-
-def wishMe():
-    hour = int(datetime.datetime.now().hour)
-    if hour >= 0 and hour < 12:
-        speak("Good Morning Sir !")
-
-    elif hour >= 12 and hour < 18:
-        speak("Good Afternoon Sir !")
-
-    else:
-        speak("Good Evening Sir !")
-
-    assname = ("Alexa")
-    speak("I am your Assistant")
-    speak(assname)
-
-
-def takeCommand():
-    r = sr.Recognizer()
-
-    with sr.Microphone() as source:
-
-        print("Listening...")
-        r.pause_threshold = 1
-        audio = r.listen(source)
-
-    try:
-        print("Recognizing...")
-        query = r.recognize_google(audio, language='en-in')
-        print(f"User said: {query}\n")
-
-    except Exception as e:
-        print(e)
-        print("Unable to Recognizing your voice.")
-        return "None"
-
-    return query
-
 
 class LVM:
     def __init__(self, size="", disk_name="", source_name="", mount_folder="", increase_size="", decrease_size="", hd_name=""):
@@ -76,100 +12,109 @@ class LVM:
         self.__decrease_size = decrease_size
         self.__hd_name = hd_name
 
+    def showUnusedStorage(self):
+        print("Showing all partitions in your OS....")
+        subprocess.run(["fdisk","-l"], check=True)
+
+
     def createPhysicalPartition(self):
-        speak("What is the name of partition")
-        self.__hd_name = takeCommand()
-        subprocess.run("sudo pvcreate " + "/dev/" + self.__hd_name)
-        output = subprocess.run("sudo pvdisplay " + "/dev/" + self.__hd_name)
+        print("What is the name of partition")
+        self.__hd_name = input()
+        name = "/dev/"+ self.__hd_name
+        subprocess.run(["pvcreate" , name],check=True)
+        output = subprocess.run(["pvdisplay", name], check=True)
         print(output)
 
     def createVisualPartition(self):
-        speak("What is name of the first hard disk")
-        storage1 = takeCommand()
-        speak("What is name of the second hard disk")
-        storage2 = takeCommand()
-        speak("What is the name of virtual hard disk")
-        self.__source_name = takeCommand()
-        subprocess.run("sudo vgcreate " + self.__source_name + "/dev/" + storage1 + "  /dev/" + storage2)
-        output = subprocess.run("sudo vgdisplay " + self.__source_name)
+        print("What is name of the first hard disk")
+        storage1 = input()
+        print("What is name of the second hard disk")
+        storage2 = input()
+        print("What is the name of virtual hard disk")
+        self.__source_name = input()
+        name1 =  "/dev/" + storage1
+        name2 =  "/dev/" + storage2
+        subprocess.run(["vgcreate" , self.__source_name , name1 , name2], check=True)
+        output = subprocess.run(["vgdisplay" ,self.__source_name], check=True)
         print(output)
 
 
     def createLVMPartition(self):
-        speak("What is the size of partition which you want to create?")
-        self.__size = takeCommand()
-        speak("What is the disk name ")
-        self.__disk_name = takeCommand()
-        speak("What is the source disk name ")
-        self.__source_name = takeCommand()
-        subprocess.run("sudo lvcreate --size " + self.__size + "G" + " --name " + self.__disk_name + " " + self.__source_name)
-        output = subprocess.run("sudo lvdisplay " + self.__source_name + "/" + self.__disk_name)
+        print("----------------------------- CREATING PARTITION ------------------------------------------")
+        print("What is the size of partition which you want to create?")
+        self.__size = input()
+        print("What is the disk name ")
+        size = self.__size + "G"
+        self.__disk_name = input()
+        print("What is the source disk name ")
+        self.__source_name = input()
+        name = self.__source_name + "/" + self.__disk_name
+        subprocess.run(["lvcreate", "--size" ,size,"--name", self.__disk_name ,self.__source_name],check=True)
+        output = subprocess.run(["lvdisplay", name], check=True)
         print(output)
+        print("------------------------------ FORMATTING PARTITION ------------------------------------------")
+        LVM.formatPartition(self)
 
     def formatPartition(self):
-        speak("Now Formatting Your Partition")
-        output = subprocess.run("sudo mkfs.ext4 " + "/dev/" + self.__source_name + "/" + self.__disk_name)
+        print("Now Formatting Your Partition")
+        name =  "/dev/" + self.__source_name + "/" + self.__disk_name
+        output = subprocess.run(["mkfs.ext4", name], check=True)
         print(output)
+        print("------------------------------ MOUNT PARTITION ----------------------------------------------")
+        LVM.mountPartition(self)
 
     def mountPartition(self):
-        speak("Now Mount the Partition")
-        speak("What is the name of mount folder")
-        self.__mount_folder = takeCommand()
-        output = subprocess.run("sudo mount " + "/dev/" + self.__source_name + "/" + self.__disk_name + " " + "/" + self.__mount_folder)
+        print("Now Mount the Partition")
+        print("What is the name of mount folder")
+        self.__mount_folder = input()
+        name = "/dev/" + self.__source_name + "/" + self.__disk_name
+        foldername = "/" + self.__mount_folder
+        try:
+            subprocess.run(["mkdir", foldername], check=True)
+            print("Mounting Folder successfully created")
+        except:
+            print("Mounting Folder successfully found")
+        output = subprocess.run(["mount", name, foldername], check=True)
         print(output)
+        print("--------------------- SUCCESSFULLY DONE ALL THREE STEPS ------------------------------------")
 
     def increasePartition(self):
-        speak("How much you want to extend the partition")
-        self.__increase_size = takeCommand()
-        subprocess.run("sudo lvextend --size +" + self.__increase_size + "G " + "/dev/" + self.__source_name + "/" + self.__disk_name)
-        subprocess.run("sudo resize2fs /dev/" + self.__source_name + "/" + self.__disk_name)
-
-    def decreasePartition(self):
-        speak("How much you want to decrease the partition")
-        self.__decrease_size = takeCommand()
-        subprocess.run("sudo lvextend --size -" + self.__decrease_size + "G " + "/dev/" + self.__source_name + "/" + self.__disk_name)
-        subprocess.run("sudo resize2fs /dev/" + self.__source_name + "/" + self.__disk_name)
+        print("How much you want to extend the partition")
+        self.__increase_size = input()
+        size =  "+" + self.__increase_size + "G"
+        self.__source_name = input("Enter source partition name... ")
+        self.__disk_name = input("Enter disk name.. ")
+        name = "/dev/" + self.__source_name + "/" + self.__disk_name
+        subprocess.run(["lvextend" , "--size", size , name], check=True)
+        subprocess.run(["resize2fs",name], check=True)
 
     def showPartition(self):
-        speak("Partitions are as following")
-        output = subprocess.run("sudo df -h")
+        print("Partitions are as following")
+        output = subprocess.run(["df", "-h"],check=True)
         print(output)
-    
-    def extendPartition(self):
-        speak("What is tha name of partition you extended")
-        extended_partition = takeCommand()
-        subprocess.run("sudo vgextend " + self.__source_name + " /dev/" + extend_partition)
 
 
 if __name__ == '__main__':
     clear = lambda: os.system('cls')
+
+    # This Function will clean any
+    # command before execution of this python file
     clear()
-    wishMe()
-    usrname()
     l = LVM()
-    
     while True:
-        speak("Heyy!..What do you want to do ?")
-        query = takeCommand().lower()
-        if (query.find(('create' and 'physical') or 'partition')) == -1:
+        print("Select What do you want.....\n1.Show all Partitions\n2.Create Physical Partition\n3.Create Visual Partition\n4.Create LVM Partition\n5.Increase Partition Size\n6.Show LVM Partition\n7.Exit\nEnter Choice....")
+        choice = int(input())
+        if choice == 1:
+            l.showUnusedStorage()
+        elif choice == 2:
             l.createPhysicalPartition()
-        elif (query.find(('create' and 'virtual') or 'partition')) == -1:
+        elif choice == 3:
             l.createVisualPartition()
-        elif (query.find(('create' and 'lvm') or 'partition')) == -1:
+        elif choice == 4:
             l.createLVMPartition()
-            l.formatPartition()
-            l.mountPartition()
-        elif (query.find('increase' or 'size' or 'partition')) == -1:
+        elif choice == 5:
             l.increasePartition()
-        elif (query.find('decrease' or 'size' or 'partition')) == -1:
-            l.decreasePartition()
-        elif (query.find('extend' and 'partition')) == -1:
-            l.decreasePartition()
-        elif (query.find('show' or 'lvm' or 'partition')) == -1:
+        elif choice == 6:
             l.showPartition()
-
-
-
-
-
-
+        elif choice == 7:
+            break
