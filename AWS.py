@@ -2,7 +2,7 @@ import subprocess
 import json
 
 class AWS():
-    def __init__(self, ami_type="",instance_type="",no_of_instance=1,vpc="", cidr="10.0.0.0/16",vpc_id="",igw="",route_table_id="",cidr_subnet=[],key_name="",sg_id="",ebs_vol_id="", instance_id="",s3_location=""):
+    def __init__(self, ami_type="",instance_type="",no_of_instance=1,vpc="", cidr="10.0.0.0/16",vpc_id="",igw="",route_table_id="",cidr_subnet=[],key_name="",sg_id="",ebs_vol_id="", instance_id="",s3_location="",instance_ids=[]):
         self.ami_type = ami_type
         self.instance_type = instance_type
         self.no_of_instance = no_of_instance
@@ -17,6 +17,7 @@ class AWS():
         self.ebs_vol_id = ebs_vol_id
         self.instance_id = instance_id
         self.s3_location = s3_location
+        self.instance_ids = instance_ids
         
 
     def installAWSCliV2(self):
@@ -128,6 +129,8 @@ class AWS():
 
         print("----------------------------ATTACHING INTERNET GATEWAY-----------------------")
         subprocess.run(["aws", "ec2", "attach-internet-gateway", "--vpc-id", self.vpc_id, "--internet-gateway-id", self.igw],check=True)
+        AWS.CreateRouteTable(self)
+
 
     def CreateSubnet(self):
         print("----------------------------CREATING SUBNET----------------------------------")
@@ -141,7 +144,9 @@ class AWS():
             if choice == 1:
                 i=i+1
             elif choice:
-                break        
+                break   
+
+        AWS.CreateInternetGateway(self)     
 
     def CreateVPC(self):
         print("----------------------CREATING VIRTUAL PRIVATE CLOUD-----------------------")
@@ -149,6 +154,7 @@ class AWS():
         vpc_output = subprocess.run(["aws", "ec2","create-vpc", "--cidr-block",self.cidr], check=True)
         data = json.loads(vpc_output)
         self.vpc_id = data['VpcId']
+        AWS.CreateSubnet(self)
 
 
     def ConfigureInstanceDetails(self):
@@ -163,17 +169,86 @@ class AWS():
 
     def CreateEC2Instance(self):
         print("--------------------------CREATING EC2 INSTANCE--------------------------")
-        AWS.SelectAMIimage(self)
-        AWS.InstanceType(self)
-        AWS.ConfigureInstanceDetails(self)
+        choice = 1
+        while choice == 1:
+            AWS.SelectAMIimage(self)
+            AWS.InstanceType(self)
+            AWS.ConfigureInstanceDetails(self)
+            AWS.CreateKeyPair(self)
+            AWS.CreateSecurityGroup(self)
+            i = 0
+            k = 0
+            if len(cidr_subnet) != 0:
+                print("You have following subnets..... \n")
+                for k in range(len(self.cidr_subnet)):
+                    print(str(k+1) + "--->" +self.cidr_subnet[k])
+                ch = int(input("Which subnet from above you want to link with your instance... \nEnter no of subnet... "))
+                instance_output = subprocess.run(["aws", "ec2", "run-instances", "--image-id" ,self.ami_type ,"--count", self.no_of_instance ,"--instance-type" ,self.instance_type ,"--key-name" ,self.key_name ,"--security-group-ids", self.sg_id ,"--subnet-id" , self.cidr_subnet[ch-1]],check=True)
+            else:
+                instance_output = subprocess.run(["aws", "ec2", "run-instances", "--image-id" ,self.ami_type ,"--count", self.no_of_instance ,"--instance-type" ,self.instance_type ,"--key-name" ,self.key_name ,"--security-group-ids", self.sg_id ,check=True)
+ 
+            data = json.loads(instance_output)
+            self.instance_id = data['InstanceId']
+            self.instance_ids[i] = self.instance_id
+            choice = int(input("Do you want to create more instances.......\n1.Yes\n2.No\nEnter Choice... "))   
+            if choice == 1:
+                i = i+1
+                continue
+            elif choice == 2:
+                break
+
 
     def DescribeEC2Instance(self):
         print("-------------------------------DESCRIBING INSTANCE-----------------------------")
-        pass
+        print("You have following instances running at current time....")
+        i=0
+        ch = 0
+        for i in range(len(self.instance_ids)):
+            print(str(i+1) +"--->"+ self.instance_ids[i])
+        print("Do you want to describe above instances or custom one -:\n 1. One of the Above\n2.Custom one\n")
+        choice = int(input("Enter Choice... "))
+        if choice == 1:
+            ch = int(input("Enter no of the instance you want to describe... "))
+            print("You Selected " + str(ch) + "instance. Instance ID-->" , self.instance_ids[ch-1])
+            subprocess.run(["aws", "ec2", "describe-instances", "--instance-ids", self.instance_ids[ch-1]],check=True)
+        elif choice == 2:
+            custom_id = input("Enter Custom Instance Id... ")
+            subprocess.run(["aws", "ec2", "describe-instances", "--instance-ids", custom_id],check=True)
 
     def TerminateEC2Instance(self):
-        print("-------------------------------TERMINATING INSTANCE------------------------------")
-        pass
+        sample = int(input("Do you want to stop it or terminate it...\n1.Stop\n2.Terminate\nEnter choice... "))
+        if sample == 1:
+            print("---------------------------------STOPPING INSTANCE----------------------------")
+            print("You have following instances running at current time....")
+            i=0
+            ch = 0
+            for i in range(len(self.instance_ids)):
+                print(str(i+1) +"--->"+ self.instance_ids[i])
+            print("Do you want to stop above instances or custom one -:\n 1. One of the Above\n2.Custom one\n")
+            choice = int(input("Enter Choice... "))
+            if choice == 1:
+                ch = int(input("Enter no of the instance you want to stop... "))
+                print("You Selected " + str(ch) + "instance. Instance ID-->" , self.instance_ids[ch-1])
+                subprocess.run(["aws", "ec2", "stop-instances", "--instance-ids", self.instance_ids[ch-1]],check=True)
+            elif choice == 2:
+                custom_id = input("Enter Custom Instance Id... ")
+                subprocess.run(["aws", "ec2", "stop-instances", "--instance-ids", custom_id],check=True)
+        elif sample == 2:
+            print("---------------------------------STOPPING INSTANCE----------------------------")
+            print("You have following instances running at current time....")
+            i=0
+            ch = 0
+            for i in range(len(self.instance_ids)):
+                print(str(i+1) +"--->"+ self.instance_ids[i])
+            print("Do you want to terminate above instances or custom one -:\n 1. One of the Above\n2.Custom one\n")
+            choice = int(input("Enter Choice... "))
+            if choice == 1:
+                ch = int(input("Enter no of the instance you want to terminate... "))
+                print("You Selected " + str(ch) + "instance. Instance ID-->" , self.instance_ids[ch-1])
+                subprocess.run(["aws", "ec2", "terminate-instances", "--instance-ids", self.instance_ids[ch-1]],check=True)
+            elif choice == 2:
+                custom_id = input("Enter Custom Instance Id... ")
+                subprocess.run(["aws", "ec2", "terminate-instances", "--instance-ids", custom_id],check=True)
 
     def CreateEBSVolume(self):
         print("-------------------------------CREATING EBS VOLUME--------------------------------")
