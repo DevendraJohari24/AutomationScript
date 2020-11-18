@@ -1,5 +1,6 @@
 import subprocess
 import json
+import os
 
 class AWS():
     def __init__(self, ami_type="",instance_type="",no_of_instance=1,vpc="", cidr="10.0.0.0/16",vpc_id="",igw="",route_table_id="",cidr_subnet=[],key_name="",sg_id="",ebs_vol_id="", instance_id="",s3_location="",instance_ids=[]):
@@ -32,6 +33,15 @@ class AWS():
             subprocess.run(["unzip", "awscliv2.zip"],check=True)
             subprocess.run(["./aws/install"], check=True)
             print("-------------------SUCCESSFULLY INSTALLED----------------------------")
+
+    def installJSON(self):
+        print("----------------------------INSTALLING JQ--------------------------------")
+        try:
+            subprocess.run(["jq","--help"],check=True)
+            print("You already have jq installed in your system.....")
+        except:
+            subprocess.run(["sudo", "apt-get","install","jq"], check=True)
+            print("Jq installed successfully in your system.....")
     
     def AWSConfigure(self):
         print("--------------------------CONFIGURING AWS--------------------------------")
@@ -80,9 +90,17 @@ class AWS():
         print("----------------------------CREATING SECURITY GROUP--------------------------")
         group_name = input("Enter Group Name... ")
         description = input("Enter Description for your Security Group... ")
-        sg_output = subprocess.run(["aws" ,"ec2" ,"create-security-group" ,"--group-name" ,group_name ,"--description", description ,"--vpc-id", self.vpc_id],check=True)
-        data = json.loads(sg_output)
-        self.sg_id = data["GroupId"]
+        file_ = open('security_group.json', 'w+')
+        subprocess.run(["aws" ,"ec2" ,"create-security-group" ,"--group-name" ,group_name ,"--description", description ,"--vpc-id", self.vpc_id],check=True, stdout=file_)
+        file_.close()
+        file = open('security_group_id.txt', 'w+')
+        subprocess.run(["jq", ".GroupId", "security_group.json"], check=True, stdout=file)
+        file.close()
+        file = open('security_group_id.txt', 'r+')
+        for x in file:
+            print(x[1:-2])
+            self.sg_id = x[1:-2]
+        file.close()
         protocol = input("Enter Protocol for your Security Group... ")
         port = input("Enter Port No for your Security Group... ")
         cidr = input("Enter CIDR block for your Security Group... ")
@@ -93,16 +111,26 @@ class AWS():
     def CreateKeyPair(self):
         print("--------------------------CREATING KEY PAIR------------------------------")
         self.key_name = input("Enter KeyName for Keypair... ")
-        key_filename = self.key_name + ".pem"
-        subprocess.run(["aws", "ec2" ,"create-key-pair" ,"--key-name" ,self.key_name "--query" ,"'KeyMaterial'" ,"--output" ,"text" ,">" , key_filename],check=True)
+        file_ = open(f'{self.key_name}.pem', 'w+')
+        subprocess.run(["aws", "ec2" ,"create-key-pair" ,"--key-name" ,self.key_name , "--query" ,"KeyMaterial" ,"--output" ,"text" ],check=True, stdout=file_)
+        file_.close()
         print("--------------------------Changing KEY-FILE PERMISSIONS------------------------")
+        key_filename = self.key_name + ".pem"
         subprocess.run(["sudo", "chmod", "400", key_filename],check=True)
 
     def CreateRouteTable(self):
         print("---------------------------CREATING ROUTE TABLE-----------------------------")
-        route_table_output = subprocess.run(["aws","ec2","create-route-table","--vpc-id",self.vpc_id], check=True)
-        data = json.loads(route_table_output)
-        self.route_table_id = data["RouteTableId"]
+        file_ = open('route_table.json', 'w+')
+        subprocess.run(["aws","ec2","create-route-table","--vpc-id",self.vpc_id], check=True, stdout=file_)
+        file_.close()
+        file = open('route_table_id.txt', 'w+')
+        subprocess.run(["jq", ".RouteTable[0].RouteTableId", "route_table.json"], check=True, stdout=file)
+        file.close()
+        file = open('route_table_id.txt', 'r+')
+        for x in file:
+            print(x[1:-2])
+            self.route_table_id = x[1:-2]
+        file.close()
         print("---------------------------ATTACHING ROUTE TABLE-----------------------------")
         destination_cidr_block=""
         choice = int(input("Enter Destination CIDR Block....\nDo you want to make it by \n1.Default[0.0.0.0/0]\n2.Custom\nEnter Choice... "))
@@ -123,10 +151,17 @@ class AWS():
 
     def CreateInternetGateway(self):
         print("----------------------------CREATING INTERNET GATEWAY------------------------")
-        igw_output = subprocess.run(["aws","ec2","create-internet-gateway"],check=True)
-        data = json.loads(igw_output)
-        self.igw = data['InternetGatewayId']
-
+        file_ = open('igw.json', 'w+')
+        subprocess.run(["aws","ec2","create-internet-gateway"],check=True,stdout=file_)
+        file_.close()
+        file = open('igw_id.txt', 'w+')
+        subprocess.run(["jq", ".InternetGateway[0].InternetGatewayId", "igw.json"], check=True, stdout=file)
+        file.close()
+        file = open('igw_id.txt', 'r+')
+        for x in file:
+            print(x[1:-2])
+            self.igw = x[1:-2]
+        file.close()
         print("----------------------------ATTACHING INTERNET GATEWAY-----------------------")
         subprocess.run(["aws", "ec2", "attach-internet-gateway", "--vpc-id", self.vpc_id, "--internet-gateway-id", self.igw],check=True)
         AWS.CreateRouteTable(self)
@@ -138,12 +173,22 @@ class AWS():
         self.cidr_subnet = []
         i=0
         while choice == 1:
-            self.cidr_subnet[i] = input("Enter cidr block value.. ")
-            subprocess.run(["aws","ec2","create-subnet","--vpc-id",self.vpc_id, "--cidr-block",self.cidr_subnet[i]], check=True)
+            cidr_subnet = input("Enter cidr block value.. ")
+            file_ = open('subnet.json','w+')
+            subprocess.run(["aws","ec2","create-subnet","--vpc-id",self.vpc_id, "--cidr-block",cidr_subnet], check=True,stdout=file_)
+            file_.close()
+            file = open('subnet_id.txt', 'w+')
+            subprocess.run(["jq", f".[{i}].ID", "subnet.json"], check=True, stdout=file)
+            file.close()
+            file = open('subnet_id.txt','r+')
+            for x in file:
+                print(x[1:-2])
+                self.cidr_subnet[i] = x[1:-2]
+            file.close()
             choice = int(input("Do you want to create more Subnets..?\n1.Yes\n2.No\nEnter Choice.. "))
             if choice == 1:
                 i=i+1
-            elif choice:
+            elif choice == 2:
                 break   
 
         AWS.CreateInternetGateway(self)     
@@ -151,9 +196,18 @@ class AWS():
     def CreateVPC(self):
         print("----------------------CREATING VIRTUAL PRIVATE CLOUD-----------------------")
         self.cidr = input("Enter CIDR Block.... ")
-        vpc_output = subprocess.run(["aws", "ec2","create-vpc", "--cidr-block",self.cidr], check=True)
-        data = json.loads(vpc_output)
-        self.vpc_id = data['VpcId']
+        file_ = open('vpc_output.json', 'w+')
+        subprocess.run(["aws", "ec2","create-vpc", "--cidr-block",self.cidr], check=True,stdout=file_)
+        file_.close()
+        file = open('vpc_id.txt', 'w+')
+        subprocess.run(["jq", ".Vpc[0].VpcId", "vpc_output.json"], check=True, stdout=file)
+        file.close()
+        file = open('vpc_id.txt','r+')
+        for x in file:
+            print(x[1:-2])
+            self.vpc_id = x[1:-2]
+
+        file.close()
         AWS.CreateSubnet(self)
 
 
@@ -178,18 +232,26 @@ class AWS():
             AWS.CreateSecurityGroup(self)
             i = 0
             k = 0
-            if len(cidr_subnet) != 0:
+            file_ = open('instance_output.json', 'w+')
+            if len(self.cidr_subnet) != 0:
                 print("You have following subnets..... \n")
                 for k in range(len(self.cidr_subnet)):
                     print(str(k+1) + "--->" +self.cidr_subnet[k])
                 ch = int(input("Which subnet from above you want to link with your instance... \nEnter no of subnet... "))
-                instance_output = subprocess.run(["aws", "ec2", "run-instances", "--image-id" ,self.ami_type ,"--count", self.no_of_instance ,"--instance-type" ,self.instance_type ,"--key-name" ,self.key_name ,"--security-group-ids", self.sg_id ,"--subnet-id" , self.cidr_subnet[ch-1]],check=True)
+                subprocess.run(["aws", "ec2", "run-instances", "--image-id" ,self.ami_type ,"--count", self.no_of_instance ,"--instance-type" ,self.instance_type ,"--key-name" ,self.key_name ,"--security-group-ids", self.sg_id ,"--subnet-id" , self.cidr_subnet[ch-1],">","instance_output.json"],check=True,stdout=file_)
             else:
-                instance_output = subprocess.run(["aws", "ec2", "run-instances", "--image-id" ,self.ami_type ,"--count", self.no_of_instance ,"--instance-type" ,self.instance_type ,"--key-name" ,self.key_name ,"--security-group-ids", self.sg_id ,check=True)
+                subprocess.run(["aws", "ec2", "run-instances", "--image-id" ,self.ami_type ,"--count", self.no_of_instance ,"--instance-type" ,self.instance_type ,"--key-name" ,self.key_name ,"--security-group-ids", self.sg_id ],check=True,stdout=file_)
  
-            data = json.loads(instance_output)
-            self.instance_id = data['InstanceId']
+            file_.close()
+            file = open('instance_id.txt', 'w+')
+            subprocess.run(["jq", ".Instances[0].InstanceId" , "instance_output.json"],check=True,stdout=file)
+            file.close()
+            file = open('instance_id.txt', 'r+')
+            for x in file:
+                print(x[1:-2])
+                self.instance_id = x[1:-2]
             self.instance_ids[i] = self.instance_id
+            file.close()
             choice = int(input("Do you want to create more instances.......\n1.Yes\n2.No\nEnter Choice... "))   
             if choice == 1:
                 i = i+1
@@ -268,7 +330,7 @@ class AWS():
         print("---------------------------------ATTACHING EBS VOLUME-----------------------------")
         device_name = input("Enter Device Name for Attached EBS Volume... ")
         device = "/dev/" + device_name
-        subprocess.run(["aws" ,"ec2" ,"attach-volume" ,"--volume-id" ,self.ebs_vol_id ,"--instance-id", self.instance_id, "--device", device),check=True]
+        subprocess.run(["aws" ,"ec2" ,"attach-volume" ,"--volume-id" ,self.ebs_vol_id ,"--instance-id", self.instance_id, "--device", device],check=True)
     
     def CreateS3Bucket(self):
         print("--------------------------------CREATING S3 BUCKET---------------------------------")
@@ -290,4 +352,4 @@ class AWS():
 
 if __name__ == "__main__":
     a = AWS()
-    a.installAWSCliV2()
+    a.CreateEC2Instance()
