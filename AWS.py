@@ -3,7 +3,7 @@ import json
 import os
 
 class AWS():
-    def __init__(self, ami_type="",instance_type="",no_of_instance=1,vpc="", cidr="10.0.0.0/16",vpc_id="",igw="",route_table_id="",cidr_subnet=[],key_name="",sg_id="",ebs_vol_id="", instance_id="",s3_location="",instance_ids=[]):     
+    def __init__(self, ami_type="",instance_type="",no_of_instance=1,vpc="", cidr="10.0.0.0/16",vpc_id="",igw="",route_table_id="",cidr_subnet=[],key_name="",sg_id="",ebs_vol_id="", instance_id="",s3_location="",instance_ids=[],domain_name="",root_object="", bucket_name=""):
         print("\n\n\n")
         print("||------------------------------------------||")
         print("||------------------------------------------||")
@@ -30,7 +30,9 @@ class AWS():
         self.instance_id = instance_id
         self.s3_location = s3_location
         self.instance_ids = instance_ids
-
+        self.domain_name = domain_name
+        self.root_object = root_object
+        self.bucket_name = bucket_name
 
     def installJSON(self):
         print("----------------------------INSTALLING JQ--------------------------------")
@@ -123,13 +125,17 @@ class AWS():
 
     def CreateKeyPair(self):
         print("--------------------------CREATING KEY PAIR------------------------------")
-        self.key_name = input("Enter KeyName for Keypair... ")
-        file_ = open(f'{self.key_name}.pem', 'w+')
-        subprocess.run(["aws", "ec2" ,"create-key-pair" ,"--key-name" ,self.key_name , "--query" ,"KeyMaterial" ,"--output" ,"text" ],check=True, stdout=file_)
-        file_.close()
-        print("--------------------------Changing KEY-FILE PERMISSIONS------------------------")
-        key_filename = self.key_name + ".pem"
-        subprocess.run(["sudo", "chmod", "400", key_filename],check=True)
+        choice = int(input("Which Key do you want to use?\n1.PreCreated\n2.Create a New One.\nEnter Choice...."))
+        if choice == 1:
+            self.key_name = input("Enter PreCreated KeyPair Name... ")
+        elif choice == 2:
+            self.key_name = input("Enter KeyName for Keypair... ")
+            file_ = open(f'{self.key_name}.pem', 'w+')
+            subprocess.run(["aws", "ec2" ,"create-key-pair" ,"--key-name" ,self.key_name , "--query" ,"KeyMaterial" ,"--output" ,"text" ],check=True, stdout=file_)
+            file_.close()
+            print("--------------------------Changing KEY-FILE PERMISSIONS------------------------")
+            key_filename = self.key_name + ".pem"
+            subprocess.run(["sudo", "chmod", "400", key_filename],check=True)
 
     def CreateRouteTable(self):
         print("---------------------------CREATING ROUTE TABLE-----------------------------")
@@ -271,7 +277,7 @@ class AWS():
         ch = 0
         for i in range(len(self.instance_ids)):
             print(str(i+1) +"--->"+ self.instance_ids[i])
-        print("Do you want to describe above instances or custom one -:\n 1. One of the Above\n2.Custom one\n")
+        print("Do you want to describe above instances or custom one -:\n 1. One of the Above\n 2.Custom one\n")
         choice = int(input("Enter Choice... "))
         if choice == 1:
             ch = int(input("Enter no of the instance you want to describe... "))
@@ -362,11 +368,11 @@ class AWS():
 
     def CreateS3Bucket(self):
         print("--------------------------------CREATING S3 BUCKET---------------------------------")
-        bucket_name = input("Enter a unique Bucket name... ")
+        self.bucket_name = input("Enter a unique Bucket name... ")
         region = input("Enter Region where you want to create your bucket... ")
         locationConstraint = "LocationConstraint=" + region
         file_ = open('s3_output.json', 'w+')
-        subprocess.run(["aws", "s3api" ,"create-bucket" ,"--bucket" ,bucket_name ,"--region" ,region ,"--create-bucket-configuration" ,locationConstraint],check=True,stdout=file_)
+        subprocess.run(["aws", "s3api" ,"create-bucket" ,"--bucket" ,self.bucket_name ,"--region" ,region ,"--create-bucket-configuration" ,locationConstraint],check=True,stdout=file_)
         file_.close()
         file = open('s3_location.txt', 'w+')
         subprocess.run(["jq", ".Location", "s3_output.json"], check=True, stdout=file)
@@ -375,6 +381,23 @@ class AWS():
         for x in file:
             print(x[1:-2])
             self.s3_location = x[1:-2]
+
+        choice = int(input("Do you Want to add Some Items in your S3 bucket.... \n1.Yes\n2.No"))
+        while choice == 1:
+            print("--------------------------------ADDING ITEMS TO S3 BUCKET------------------------------")
+            key_directory = input("Enter Key Directory... ")
+            body_directory = input("Enter Location of Directory for your Item... ")
+            subprocess.run(["aws" , "s3api" , "put-object" , "--bucket" ,  self.bucket_name , "--key" , key_directory , "--body" , body_directory],check=True)
+            choice = int(input("Do you Want to add Some More Items in your S3 bucket.... \n1.Yes\n2.No"))
+
+    def CreateCloudFront(self):
+        print("--------------------------------CREATING CLOUDFRONT---------------------------------")
+        self.domain_name = input("Enter Domain name for your CloudFront... ")
+        self.root_object = input("Enter Default Root Object.. ")
+        subprocess.run(["aws", "cloudfront" ,"create-distribution" ,"--origin-domain-name" , f"{self.domain_name}" ,"--default-root-object", self.root_object],check=True)
+
+
+
 
 
     def LaunchWebServer(self):
