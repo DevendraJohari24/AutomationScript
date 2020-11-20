@@ -369,7 +369,7 @@ class AWS():
         subprocess.run(["aws", "s3api" ,"create-bucket" ,"--bucket" ,bucket_name ,"--region" ,region ,"--create-bucket-configuration" ,locationConstraint],check=True,stdout=file_)
         file_.close()
         file = open('s3_location.txt', 'w+')
-        subprocess.run(["jq", ".Instances[0].InstanceId", "s3_output.json"], check=True, stdout=file)
+        subprocess.run(["jq", ".Location", "s3_output.json"], check=True, stdout=file)
         file.close()
         file = open('s3_location.txt', 'r+')
         for x in file:
