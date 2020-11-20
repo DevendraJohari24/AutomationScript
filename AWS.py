@@ -3,7 +3,18 @@ import json
 import os
 
 class AWS():
-    def __init__(self, ami_type="",instance_type="",no_of_instance=1,vpc="", cidr="10.0.0.0/16",vpc_id="",igw="",route_table_id="",cidr_subnet=[],key_name="",sg_id="",ebs_vol_id="", instance_id="",s3_location="",instance_ids=[]):
+    def __init__(self, ami_type="",instance_type="",no_of_instance=1,vpc="", cidr="10.0.0.0/16",vpc_id="",igw="",route_table_id="",cidr_subnet=[],key_name="",sg_id="",ebs_vol_id="", instance_id="",s3_location="",instance_ids=[]):     
+        print("\n\n\n")
+        print("||------------------------------------------||")
+        print("||------------------------------------------||")
+        print("||  :::::::     ::          ::     :::::::  ||")
+        print("||  ::   ::      ::        ::      ::       ||")
+        print("||  :::::::       ::  ::  ::       :::::::  ||")
+        print("||  ::   ::        :: :: ::             ::  ||")
+        print("||  ::   ::         ::::::         :::::::  ||")
+        print("||------------------------------------------||")
+        print("||------------------------------------------||")
+        print("\n\n\n")
         self.ami_type = ami_type
         self.instance_type = instance_type
         self.no_of_instance = no_of_instance
@@ -19,7 +30,16 @@ class AWS():
         self.instance_id = instance_id
         self.s3_location = s3_location
         self.instance_ids = instance_ids
-        
+
+
+    def installJSON(self):
+        print("----------------------------INSTALLING JQ--------------------------------")
+        try:
+            subprocess.run(["jq","--help"],check=True)
+            print("You already have jq installed in your system.....")
+        except:
+            subprocess.run(["sudo", "apt-get","install","jq"], check=True)
+            print("Jq installed successfully in your system.....")
 
     def installAWSCliV2(self):
         print("----------------------------INSTALLING AWS-------------------------------")
@@ -33,15 +53,8 @@ class AWS():
             subprocess.run(["unzip", "awscliv2.zip"],check=True)
             subprocess.run(["./aws/install"], check=True)
             print("-------------------SUCCESSFULLY INSTALLED----------------------------")
+            AWS.installJSON(self)
 
-    def installJSON(self):
-        print("----------------------------INSTALLING JQ--------------------------------")
-        try:
-            subprocess.run(["jq","--help"],check=True)
-            print("You already have jq installed in your system.....")
-        except:
-            subprocess.run(["sudo", "apt-get","install","jq"], check=True)
-            print("Jq installed successfully in your system.....")
     
     def AWSConfigure(self):
         print("--------------------------CONFIGURING AWS--------------------------------")
@@ -124,7 +137,7 @@ class AWS():
         subprocess.run(["aws","ec2","create-route-table","--vpc-id",self.vpc_id], check=True, stdout=file_)
         file_.close()
         file = open('route_table_id.txt', 'w+')
-        subprocess.run(["jq", ".RouteTable[0].RouteTableId", "route_table.json"], check=True, stdout=file)
+        subprocess.run(["jq", ".RouteTable.RouteTableId", "route_table.json"], check=True, stdout=file)
         file.close()
         file = open('route_table_id.txt', 'r+')
         for x in file:
@@ -142,11 +155,13 @@ class AWS():
         print("--------------------------CHOOSE SUBNET FOR ROUTE TABLE------------------------")
         print("You have created following Subnets -: ")
         for i in range(len(self.cidr_subnet)):
-            print((i+1) + "--->" + self.cidr_subnet[i])
-        while True:
+            print(str(i+1) + "--->" + self.cidr_subnet[i])
+        while choice == 1:
             print("---------------------------ASSOCIATING SELECTED SUBNET TO ROUTE TABLE----------------------------")
             ch = int(input("Choose one of the above subnets... "))
-            subprocess.run(["aws" ,"ec2", "associate-route-table" ,"--subnet-id" ,self.cidr_subnet[ch] ,"--route-table-id" ,self.route_table_id],check=True)
+            print(ch)
+            print(self.cidr_subnet[ch-1])
+            subprocess.run(["aws" ,"ec2", "associate-route-table" ,"--subnet-id" ,self.cidr_subnet[ch-1] ,"--route-table-id" ,self.route_table_id],check=True)
             choice = int(input("Do you want to associate more subnets..\n1.Yes\n2.No\nEnter Choice.. "))
 
     def CreateInternetGateway(self):
@@ -155,7 +170,7 @@ class AWS():
         subprocess.run(["aws","ec2","create-internet-gateway"],check=True,stdout=file_)
         file_.close()
         file = open('igw_id.txt', 'w+')
-        subprocess.run(["jq", ".InternetGateway[0].InternetGatewayId", "igw.json"], check=True, stdout=file)
+        subprocess.run(["jq", ".InternetGateway.InternetGatewayId", "igw.json"], check=True, stdout=file)
         file.close()
         file = open('igw_id.txt', 'r+')
         for x in file:
@@ -170,26 +185,20 @@ class AWS():
     def CreateSubnet(self):
         print("----------------------------CREATING SUBNET----------------------------------")
         choice = 1
-        self.cidr_subnet = []
-        i=0
         while choice == 1:
             cidr_subnet = input("Enter cidr block value.. ")
             file_ = open('subnet.json','w+')
             subprocess.run(["aws","ec2","create-subnet","--vpc-id",self.vpc_id, "--cidr-block",cidr_subnet], check=True,stdout=file_)
             file_.close()
             file = open('subnet_id.txt', 'w+')
-            subprocess.run(["jq", f".[{i}].ID", "subnet.json"], check=True, stdout=file)
+            subprocess.run(["jq", ".Subnet.SubnetId" ,"subnet.json"], check=True, stdout=file)
             file.close()
             file = open('subnet_id.txt','r+')
             for x in file:
                 print(x[1:-2])
-                self.cidr_subnet[i] = x[1:-2]
+                self.cidr_subnet.append(x[1:-2])
             file.close()
             choice = int(input("Do you want to create more Subnets..?\n1.Yes\n2.No\nEnter Choice.. "))
-            if choice == 1:
-                i=i+1
-            elif choice == 2:
-                break   
 
         AWS.CreateInternetGateway(self)     
 
@@ -200,7 +209,7 @@ class AWS():
         subprocess.run(["aws", "ec2","create-vpc", "--cidr-block",self.cidr], check=True,stdout=file_)
         file_.close()
         file = open('vpc_id.txt', 'w+')
-        subprocess.run(["jq", ".Vpc[0].VpcId", "vpc_output.json"], check=True, stdout=file)
+        subprocess.run(["jq", ".Vpc.VpcId", "vpc_output.json"], check=True, stdout=file)
         file.close()
         file = open('vpc_id.txt','r+')
         for x in file:
@@ -238,7 +247,7 @@ class AWS():
                 for k in range(len(self.cidr_subnet)):
                     print(str(k+1) + "--->" +self.cidr_subnet[k])
                 ch = int(input("Which subnet from above you want to link with your instance... \nEnter no of subnet... "))
-                subprocess.run(["aws", "ec2", "run-instances", "--image-id" ,self.ami_type ,"--count", self.no_of_instance ,"--instance-type" ,self.instance_type ,"--key-name" ,self.key_name ,"--security-group-ids", self.sg_id ,"--subnet-id" , self.cidr_subnet[ch-1],">","instance_output.json"],check=True,stdout=file_)
+                subprocess.run(["aws", "ec2", "run-instances", "--image-id" ,self.ami_type ,"--count", self.no_of_instance ,"--instance-type" ,self.instance_type ,"--key-name" ,self.key_name ,"--security-group-ids", self.sg_id ,"--subnet-id" , self.cidr_subnet[ch-1]],check=True,stdout=file_)
             else:
                 subprocess.run(["aws", "ec2", "run-instances", "--image-id" ,self.ami_type ,"--count", self.no_of_instance ,"--instance-type" ,self.instance_type ,"--key-name" ,self.key_name ,"--security-group-ids", self.sg_id ],check=True,stdout=file_)
  
@@ -250,14 +259,9 @@ class AWS():
             for x in file:
                 print(x[1:-2])
                 self.instance_id = x[1:-2]
-            self.instance_ids[i] = self.instance_id
+            self.instance_ids.append(self.instance_id)
             file.close()
-            choice = int(input("Do you want to create more instances.......\n1.Yes\n2.No\nEnter Choice... "))   
-            if choice == 1:
-                i = i+1
-                continue
-            elif choice == 2:
-                break
+            choice = int(input("Do you want to create more instances.......\n1.Yes\n2.No\nEnter Choice... "))
 
 
     def DescribeEC2Instance(self):
@@ -311,6 +315,8 @@ class AWS():
             elif choice == 2:
                 custom_id = input("Enter Custom Instance Id... ")
                 subprocess.run(["aws", "ec2", "terminate-instances", "--instance-ids", custom_id],check=True)
+        else:
+            print("You Selected Nothing")
 
     def CreateEBSVolume(self):
         print("-------------------------------CREATING EBS VOLUME--------------------------------")
@@ -323,23 +329,52 @@ class AWS():
 
         size = input("Enter EBS Volume Size... ")
         availability_zone = input("Enter AvailabilityZone... ")
-        ebs_output = subprocess.run(["aws" ,"ec2" ,"create-volume" ,"--volume-type", volume_type ,"--size" ,size ,"--availability-zone" ,availability_zone],check=True)
-        data = json.loads(ebs_output)
-        self.ebs_vol_id = data["VolumeId"]
-
+        file_ = open('ebs_output.json', 'w+')
+        subprocess.run(["aws" ,"ec2" ,"create-volume" ,"--volume-type", volume_type ,"--size" ,size ,"--availability-zone" ,availability_zone],check=True, stdout=file_)
+        file_.close()
+        file = open('ebs_id.txt', 'w+')
+        subprocess.run(["jq", ".VolumeId", "ebs_output.json"], check=True, stdout=file)
+        file.close()
+        file = open('ebs_id.txt', 'r+')
+        for x in file:
+            print(x)
+            self.ebs_vol_id = x[1:-2]
+        file.close()
         print("---------------------------------ATTACHING EBS VOLUME-----------------------------")
         device_name = input("Enter Device Name for Attached EBS Volume... ")
         device = "/dev/" + device_name
-        subprocess.run(["aws" ,"ec2" ,"attach-volume" ,"--volume-id" ,self.ebs_vol_id ,"--instance-id", self.instance_id, "--device", device],check=True)
-    
+        print("You have following instances running at current time....")
+        i = 0
+        ch = 0
+        for i in range(len(self.instance_ids)):
+            print(str(i + 1) + "--->" + self.instance_ids[i])
+        print("Do you want to choose above instances or custom one for attaching EBS -:\n 1. One of the Above\n2.Custom one\n")
+        choice = int(input("Enter Choice... "))
+        if choice == 1:
+            ch = int(input("Enter no of the instance you want to attach EBS to it... "))
+            print("You Selected " + str(ch) + "instance. Instance ID-->", self.instance_ids[ch - 1])
+            subprocess.run(["aws" ,"ec2" ,"attach-volume" ,"--volume-id" ,self.ebs_vol_id ,"--instance-id", self.instance_ids[ch-1], "--device", device],check=True)
+
+        elif choice == 2:
+            custom_id = input("Enter Custom Instance Id... ")
+            subprocess.run(["aws" ,"ec2" ,"attach-volume" ,"--volume-id" ,self.ebs_vol_id ,"--instance-id", custom_id, "--device", device],check=True)
+
+
     def CreateS3Bucket(self):
         print("--------------------------------CREATING S3 BUCKET---------------------------------")
         bucket_name = input("Enter a unique Bucket name... ")
         region = input("Enter Region where you want to create your bucket... ")
-        locationConstraint = "LocationConstraint="+ region
-        s3_bucket_output = subprocess.run(["aws", "s3api" ,"create-bucket" ,"--bucket" ,bucket_name ,"--region" ,region ,"--create-bucket-configuration" ,locationConstraint],check=True)
-        data = json.loads(s3_bucket_output)
-        self.s3_location = data['Location']
+        locationConstraint = "LocationConstraint=" + region
+        file_ = open('s3_output.json', 'w+')
+        subprocess.run(["aws", "s3api" ,"create-bucket" ,"--bucket" ,bucket_name ,"--region" ,region ,"--create-bucket-configuration" ,locationConstraint],check=True,stdout=file_)
+        file_.close()
+        file = open('s3_location.txt', 'w+')
+        subprocess.run(["jq", ".Instances[0].InstanceId", "s3_output.json"], check=True, stdout=file)
+        file.close()
+        file = open('s3_location.txt', 'r+')
+        for x in file:
+            print(x[1:-2])
+            self.s3_location = x[1:-2]
 
 
     def LaunchWebServer(self):
@@ -352,4 +387,23 @@ class AWS():
 
 if __name__ == "__main__":
     a = AWS()
-    a.CreateEC2Instance()
+    choice = -1
+    while True:
+        choice = int(input("What do you want to do in AWS.....?\n1.Install AWS Cli in your Linux System.\n2.Configure AWS for IAM User.\n3.Create EC2 Instance.\n4.Describe EC2 Instance\n5.Terminate or Stop EC2 Instance.\n6.Create EBS Storage and Attach it.\n7.Create S3 Bucket.\n8.Exit.\nEnter Choice....."))
+        if choice == 1:
+            a.installAWSCliV2()
+        elif choice == 2:
+            a.AWSConfigure()
+        elif choice == 3:
+            a.CreateEC2Instance()
+        elif choice == 4:
+            a.DescribeEC2Instance()
+        elif choice == 5:
+            a.TerminateEC2Instance()
+        elif choice == 6:
+            a.CreateEBSVolume()
+        elif choice == 7:
+            a.CreateS3Bucket()
+        elif choice == 8:
+            break
+
