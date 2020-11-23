@@ -1,9 +1,11 @@
 import subprocess
 import json
+import spur
 import os
+import getpass
 
 class AWS():
-    def __init__(self, ami_type="",instance_type="",no_of_instance=1,vpc="", cidr="10.0.0.0/16",vpc_id="",igw="",route_table_id="",cidr_subnet=[],key_name="",sg_id="",ebs_vol_id="", instance_id="",s3_location="",instance_ids=[],domain_name="",root_object="", bucket_name=""):
+    def __init__(self, ami_type="",instance_type="",no_of_instance=1,vpc="", cidr="10.0.0.0/16",vpc_id="",igw="",route_table_id="",cidr_subnet=[],key_name="",sg_id="",ebs_vol_id="", instance_id="",s3_location="",instance_ids=[],domain_name="",root_object="", bucket_name="",region=""):
         print("\n\n\n")
         print("||------------------------------------------||")
         print("||------------------------------------------||")
@@ -33,6 +35,7 @@ class AWS():
         self.domain_name = domain_name
         self.root_object = root_object
         self.bucket_name = bucket_name
+        self.region = region
 
     def installJSON(self):
         print("----------------------------INSTALLING JQ--------------------------------")
@@ -103,24 +106,38 @@ class AWS():
 
     def CreateSecurityGroup(self):
         print("----------------------------CREATING SECURITY GROUP--------------------------")
-        group_name = input("Enter Group Name... ")
-        description = input("Enter Description for your Security Group... ")
-        file_ = open('security_group.json', 'w+')
-        subprocess.run(["aws" ,"ec2" ,"create-security-group" ,"--group-name" ,group_name ,"--description", description ,"--vpc-id", self.vpc_id],check=True, stdout=file_)
-        file_.close()
-        file = open('security_group_id.txt', 'w+')
-        subprocess.run(["jq", ".GroupId", "security_group.json"], check=True, stdout=file)
-        file.close()
-        file = open('security_group_id.txt', 'r+')
-        for x in file:
-            print(x[1:-2])
-            self.sg_id = x[1:-2]
-        file.close()
-        protocol = input("Enter Protocol for your Security Group... ")
-        port = input("Enter Port No for your Security Group... ")
-        cidr = input("Enter CIDR block for your Security Group... ")
-        print("-----------------------------AUTHORIZING SECURITY GROUP---------------------------")
-        subprocess.run(["aws","ec2","authorize-security-group-ingress" ,"--group-id",self.sg_id ,"--protocol", protocol, "--port" , port, "--cidr" , cidr],check=True)
+        choice = int(input("Which Security Group Do you want to use?...\n1.PreCreated\n2.New One\nEnter Choice.... "))
+        if choice == 1:
+            security_group = input("Enter Security Group Name... ")
+            file_= open("security_group_output.json",'w+')
+            subprocess.run(["aws", "ec2", "describe-security-groups", "--group-names",security_group],check=True,stdout=file_)
+            file_.close()
+            file = open("security_group_id.txt", 'w+')
+            subprocess.run(["jq",".SecurityGroups[0].GroupId", "security_group_output.json"],check=True,stdout=file)
+            file.close()
+            file = open("security_group_id.txt",'r+')
+            for x in file:
+                print(x[1:-2])
+                self.sg_id = x[1:-2]
+        elif choice == 2:
+            group_name = input("Enter Group Name... ")
+            description = input("Enter Description for your Security Group... ")
+            file_ = open('security_group.json', 'w+')
+            subprocess.run(["aws" ,"ec2" ,"create-security-group" ,"--group-name" ,group_name ,"--description", description ,"--vpc-id", self.vpc_id],check=True, stdout=file_)
+            file_.close()
+            file = open('security_group_id.txt', 'w+')
+            subprocess.run(["jq", ".GroupId", "security_group.json"], check=True, stdout=file)
+            file.close()
+            file = open('security_group_id.txt', 'r+')
+            for x in file:
+                print(x[1:-2])
+                self.sg_id = x[1:-2]
+            file.close()
+            protocol = input("Enter Protocol for your Security Group... ")
+            port = input("Enter Port No for your Security Group... ")
+            cidr = input("Enter CIDR block for your Security Group... ")
+            print("-----------------------------AUTHORIZING SECURITY GROUP---------------------------")
+            subprocess.run(["aws","ec2","authorize-security-group-ingress" ,"--group-id",self.sg_id ,"--protocol", protocol, "--port" , port, "--cidr" , cidr],check=True)
 
 
     def CreateKeyPair(self):
@@ -232,6 +249,29 @@ class AWS():
         choice = int(input("Select Network (VPC).. \n1.Default\n2.Create a new One\nEnter Choice... "))
         if choice == 1:
             self.vpc = "default"
+            print("--------------------------PREPARING DEFAULT VPC--------------------------")
+            file_ = open("vpc_output.json",'w+')
+            subprocess.run(["aws","ec2","describe-vpcs"],stdout=file_,check=True)
+            file_.close()
+            file = open("vpc_default_id.txt","w+")
+            subprocess.run(["jq", ".Vpcs[0].VpcId", "vpc_output.json"],check=True,stdout=file)
+            file.close()
+            file = open("vpc_default_id.txt","r+")
+            for x in file:
+                print(x[1:-2])
+                self.vpc_id = x[1:-2]
+            file.close()
+            print("-----------------------PREPARING DEFAULT SUBNET-----------------------")
+            file_ = open("subnet_output.json",'w+')
+            subprocess.run(["aws","ec2","describe-vpcs"],stdout=file_,check=True)
+            file_.close()
+            file = open("subnet_default_id.txt","w+")
+            subprocess.run(["jq", ".Subnets[0].SubnetId", "subnet_output.json"],check=True,stdout=file)
+            file.close()
+            file = open("subnet_default_id.txt","r+")
+            for x in file:
+                print(x[1:-2])
+                self.cidr_subnet[0] = x[1:-2]
         elif choice == 2:
             AWS.CreateVPC(self)
     
@@ -248,14 +288,12 @@ class AWS():
             i = 0
             k = 0
             file_ = open('instance_output.json', 'w+')
-            if len(self.cidr_subnet) != 0:
-                print("You have following subnets..... \n")
-                for k in range(len(self.cidr_subnet)):
-                    print(str(k+1) + "--->" +self.cidr_subnet[k])
-                ch = int(input("Which subnet from above you want to link with your instance... \nEnter no of subnet... "))
-                subprocess.run(["aws", "ec2", "run-instances", "--image-id" ,self.ami_type ,"--count", self.no_of_instance ,"--instance-type" ,self.instance_type ,"--key-name" ,self.key_name ,"--security-group-ids", self.sg_id ,"--subnet-id" , self.cidr_subnet[ch-1]],check=True,stdout=file_)
-            else:
-                subprocess.run(["aws", "ec2", "run-instances", "--image-id" ,self.ami_type ,"--count", self.no_of_instance ,"--instance-type" ,self.instance_type ,"--key-name" ,self.key_name ,"--security-group-ids", self.sg_id ],check=True,stdout=file_)
+            self.region = input("Enter the region where you want to launch your Instance... : ")
+            print("You have following subnets..... \n")
+            for k in range(len(self.cidr_subnet)):
+                print(str(k+1) + "--->" +self.cidr_subnet[k])
+            ch = int(input("Which subnet from above you want to link with your instance... \nEnter no of subnet... "))
+            subprocess.run(["aws", "ec2", "run-instances", "--image-id" ,self.ami_type ,"--count", self.no_of_instance ,"--instance-type" ,self.instance_type ,"--key-name" ,self.key_name , "--region", self.region,"--security-group-ids", self.sg_id ,"--subnet-id" , self.cidr_subnet[ch-1]],check=True,stdout=file_)
  
             file_.close()
             file = open('instance_id.txt', 'w+')
@@ -318,6 +356,7 @@ class AWS():
                 ch = int(input("Enter no of the instance you want to terminate... "))
                 print("You Selected " + str(ch) + "instance. Instance ID-->" , self.instance_ids[ch-1])
                 subprocess.run(["aws", "ec2", "terminate-instances", "--instance-ids", self.instance_ids[ch-1]],check=True)
+                self.instance_ids.pop(ch-1)
             elif choice == 2:
                 custom_id = input("Enter Custom Instance Id... ")
                 subprocess.run(["aws", "ec2", "terminate-instances", "--instance-ids", custom_id],check=True)
@@ -396,23 +435,80 @@ class AWS():
         self.root_object = input("Enter Default Root Object.. ")
         subprocess.run(["aws", "cloudfront" ,"create-distribution" ,"--origin-domain-name" , f"{self.domain_name}" ,"--default-root-object", self.root_object],check=True)
 
+    def ConnectInstance(self):
+        choice = int(input("You have following instances running at current time....\nDo You want to try \n1.these ones \n2.Custom One\nEnter Choice.... "))
+        i=0
+        for i in range(len(self.instance_ids)):
+            print(str(i+1) +"--->"+ self.instance_ids[i])
+        
+        if choice == 1:
+            ch = int(input("Select No of Instance... "))
+            file_ = open("instance_output.json", "w+")
+            subprocess.run(["aws", "ec2", "describe-instances", "--instance-ids", self.instance_ids[ch-1]],check=True,stdout=file_)
+            file_.close()
+            file = open("instance_ip.txt", "w+")
+            subprocess.run(["jq", ".Instances[0].","instance_output.json"],stdout=file, check=True)
+            file.close()
+            file = open("instance_ip.txt","r+")
+            for x in file:
+                instance_ip = x[1:-2]
+            file.close()
+
+        elif choice == 2: 
+            instance_ip = input("Enter IP of your Custom Instance... ")
+
+        host_name = instance_ip
+        username = "ec2-user"
+        private_key_file = input("Enter Path of Private Key for Instance... ")
+        shell = spur.SshShell(hostname=host_name, username=username, private_key_file=private_key_file, missing_host_key=spur.ssh.MissingHostKey.accept)
+        choice = ""
+        cmd = ""
+        with shell:
+            while choice != "exit":
+                choice = input("Enter Command....  ")
+                command = choice.split(" ")
+                if command.count('cd')>0:
+                    while cmd != "exit":
+                        cmd = input("Enter Command inside new directory.... ")
+                        cmd_command = cmd.split(" ")
+                        results = shell.run(cmd_command,cwd=command[1],allow_error=True)
+                        print(results.output)
+                else:
+                    result = shell.run(command,allow_error=True)
+                print(result.output)
+
+    def ConnectAnySystem(self):
+        host_name = input("Enter IP of the System... ")
+        username = input("Enter Username... ")
+        password = getpass.getpass("Enter Password...  ")
+        shell = spur.SshShell(hostname=host_name, username=username, password=password, missing_host_key=spur.ssh.MissingHostKey.accept)
+        choice = ""
+        cmd = ""
+        with shell:
+            while choice != "exit":
+                choice = input("Enter Command....  ")
+                command = choice.split(" ")
+                if command.count('cd')>0:
+                    while cmd != "exit":
+                        cmd = input("Enter Command inside new directory.... ")
+                        cmd_command = cmd.split(" ")
+                        results = shell.run(cmd_command,cwd=command[1],allow_error=True)
+                        print(results.output)
+                else:
+                    result = shell.run(command,allow_error=True)
+                print(result.output)
+                result=""
 
 
+                
+                
 
-
-    def LaunchWebServer(self):
-        print("--------------------------------LAUNCHING WEBSERVER---------------------------------")
-        pass
-
-    def LaunchDatabaseServer(self):
-        print("-------------------------------LAUNCHING DATABASE SERVER-------------------------")
-        pass
 
 if __name__ == "__main__":
     a = AWS()
     choice = -1
     while True:
-        choice = int(input("What do you want to do in AWS.....?\n1.Install AWS Cli in your Linux System.\n2.Configure AWS for IAM User.\n3.Create EC2 Instance.\n4.Describe EC2 Instance\n5.Terminate or Stop EC2 Instance.\n6.Create EBS Storage and Attach it.\n7.Create S3 Bucket.\n8.Exit.\nEnter Choice....."))
+        choice = int(input("What do you want to do in AWS.....?\n1.Install AWS Cli in your Linux System.\n2.Configure AWS for IAM User.\n3.Create EC2 Instance.\n4.Describe EC2 Instance\n5.Terminate or Stop EC2 Instance.\n6.Create EBS Storage and Attach it.\n7.Create S3 Bucket.\n8.Create CloudFront\n9.Connect to EC2 Instance.\n10.Connect to Any System.\n11.Exit.\nEnter Choice....."))
         if choice == 1:
             a.installAWSCliV2()
         elif choice == 2:
@@ -428,5 +524,11 @@ if __name__ == "__main__":
         elif choice == 7:
             a.CreateS3Bucket()
         elif choice == 8:
-            break
+            a.CreateCloudFront()
+        elif choice == 9:
+            a.ConnectInstance()
+        elif choice == 10:
+            a.ConnectAnySystem()
+        elif choice == 11:
+            break 
 
