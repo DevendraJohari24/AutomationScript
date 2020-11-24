@@ -281,7 +281,7 @@ class AWS():
 
             print(random.choice(colors) + "-----------------------PREPARING DEFAULT SUBNET-----------------------")
             file_ = open("subnet_output.json",'w+')
-            subprocess.run(["aws","ec2","describe-vpcs"],stdout=file_,check=True)
+            subprocess.run(["aws","ec2","describe-subnets"],stdout=file_,check=True)
             file_.close()
             file = open("subnet_default_id.txt","w+")
             subprocess.run(["jq", ".Subnets[0].SubnetId", "subnet_output.json"],check=True,stdout=file)
@@ -289,7 +289,7 @@ class AWS():
             file = open("subnet_default_id.txt","r+")
             for x in file:
                 print(x[1:-2])
-                self.cidr_subnet[0] = x[1:-2]
+                self.cidr_subnet.append(x[1:-2])
             file.close()
             subprocess.run(["rm","subnet_output.json","subnet_default_id.txt","-f"],check=True)
 
@@ -463,18 +463,19 @@ class AWS():
 
     def ConnectInstance(self):
         print(random.choice(colors) + "-----------------------------------CONNECTING EC2-INSTANCE----------------------------------")
-        choice = int(input("You have following instances running at current time....\nDo You want to try \n1.these ones \n2.Custom One\nEnter Choice.... "))
+        print("You have following instances running at current time....\n")
         i=0
         for i in range(len(self.instance_ids)):
             print(str(i+1) +"--->"+ self.instance_ids[i])
-        
+
+        choice = int(input("Do You want to try \n1.These ones \n2.Custom One\nEnter Choice.... "))
         if choice == 1:
             ch = int(input("Select No of Instance... "))
             file_ = open("instance_output.json", "w+")
             subprocess.run(["aws", "ec2", "describe-instances", "--instance-ids", self.instance_ids[ch-1]],check=True,stdout=file_)
             file_.close()
             file = open("instance_ip.txt", "w+")
-            subprocess.run(["jq", ".Instances[0].","instance_output.json"],stdout=file, check=True)
+            subprocess.run(["jq", ".Reservations[0].Instances[0].PrivateIpAddress","instance_output.json"],stdout=file, check=True)
             file.close()
             file = open("instance_ip.txt","r+")
             for x in file:
