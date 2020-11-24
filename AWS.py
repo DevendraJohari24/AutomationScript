@@ -3,19 +3,24 @@ import json
 import spur
 import os
 import getpass
+import colorama
+from colorama import Fore
+import random
+
+colors = list(vars(colorama.Fore).values())
 
 class AWS():
     def __init__(self, ami_type="",instance_type="",no_of_instance=1,vpc="", cidr="10.0.0.0/16",vpc_id="",igw="",route_table_id="",cidr_subnet=[],key_name="",sg_id="",ebs_vol_id="", instance_id="",s3_location="",instance_ids=[],domain_name="",root_object="", bucket_name="",region=""):
         print("\n\n\n")
-        print("||------------------------------------------||")
-        print("||------------------------------------------||")
-        print("||  :::::::     ::          ::     :::::::  ||")
-        print("||  ::   ::      ::        ::      ::       ||")
-        print("||  :::::::       ::  ::  ::       :::::::  ||")
-        print("||  ::   ::        :: :: ::             ::  ||")
-        print("||  ::   ::         ::::::         :::::::  ||")
-        print("||------------------------------------------||")
-        print("||------------------------------------------||")
+        print(Fore.YELLOW + "||------------------------------------------||")
+        print(Fore.BLUE + "||------------------------------------------||")
+        print(Fore.YELLOW + "||  :::::::     ::          ::     :::::::  ||")
+        print(Fore.BLUE + "||  ::   ::      ::        ::      ::       ||")
+        print(Fore.YELLOW + "||  :::::::       ::  ::  ::       :::::::  ||")
+        print(Fore.BLUE + "||  ::   ::        :: :: ::             ::  ||")
+        print(Fore.YELLOW + "||  ::   ::         ::::::         :::::::  ||")
+        print(Fore.BLUE + "||------------------------------------------||")
+        print(Fore.YELLOW +"||------------------------------------------||" + Fore.WHITE)
         print("\n\n\n")
         self.ami_type = ami_type
         self.instance_type = instance_type
@@ -38,7 +43,7 @@ class AWS():
         self.region = region
 
     def installJSON(self):
-        print("----------------------------INSTALLING JQ--------------------------------")
+        print(random.choice(colors) + "----------------------------INSTALLING JQ--------------------------------")
         try:
             subprocess.run(["jq","--help"],check=True)
             print("You already have jq installed in your system.....")
@@ -47,7 +52,7 @@ class AWS():
             print("Jq installed successfully in your system.....")
 
     def installAWSCliV2(self):
-        print("----------------------------INSTALLING AWS-------------------------------")
+        print(random.choice(colors) + "----------------------------INSTALLING AWS-------------------------------")
         try:
             subprocess.run(["aws", "--version"], check=True)
             print("AWS already configured in your system......")
@@ -57,23 +62,23 @@ class AWS():
             subprocess.run(["curl", downloading_link, "-o", folder_name],check=True)
             subprocess.run(["unzip", "awscliv2.zip"],check=True)
             subprocess.run(["./aws/install"], check=True)
-            print("-------------------SUCCESSFULLY INSTALLED----------------------------")
+            print(random.choice(colors) + "-------------------SUCCESSFULLY INSTALLED----------------------------")
             AWS.installJSON(self)
 
     
     def AWSConfigure(self):
-        print("--------------------------CONFIGURING AWS--------------------------------")
+        print(random.choice(colors) + "--------------------------CONFIGURING AWS--------------------------------")
         print("Enter Credientials........")
         try:
             subprocess.run(["aws", "configure"], check=True)
         except:
-            print("-------------AWS NOT CONFIGURED IN YOUR SYSTEM----------------")
+            print(random.choice(colors) + "-------------AWS NOT CONFIGURED IN YOUR SYSTEM----------------")
             AWS.installAWSCliV2(self)
             subprocess.run(["aws", "configure"], check=True)
         print("-------------------------AWS CONFIGURED SUCCESSFULLY---------------------")
 
     def SelectAMIimage(self):
-        print("------------------------SELECTING AMI IMAGE-------------------------")
+        print(random.choice(colors) + "------------------------SELECTING AMI IMAGE-------------------------")
         choice = int(input("Select One AMI image in follwing images ---------->\n1.Amazon Linux 2 AMI (HVM), SSD Volume Type\n2.Red Hat Enterprise Linux 8 (HVM), SSD Volume Type\n3.Ubuntu Server 20.04 LTS (HVM), SSD Volume Type\n4.Microsoft Windows Server 2019 Base \n5.SUSE Linux Enterprise Server 15 SP2 (HVM), SSD Volume Type\n6.Custom Input\nEnter Choice... "))
         if choice == 1:
             self.ami_type = "ami-0e306788ff2473ccb"
@@ -89,7 +94,7 @@ class AWS():
             self.ami_type = input("Enter Custom AMI image.... ")
 
     def InstanceType(self):
-        print("---------------------------SELECTING INSTANCE TYPE------------------------")
+        print(random.choice(colors) + "---------------------------SELECTING INSTANCE TYPE------------------------")
         choice = int(input("Select One Instane type in following ----->\n1.t2.nano\n2.t2.micro[FREE]\n3.t2.small\n4.t2.medium\n5.t2.large\n6.Custom Instance type\nEnter Choice.... "))
         if choice == 1:
             self.instance_type = "t2.nano"
@@ -105,7 +110,7 @@ class AWS():
             self.instance_type = input("Enter Custom Instance Type... ")
 
     def CreateSecurityGroup(self):
-        print("----------------------------CREATING SECURITY GROUP--------------------------")
+        print(random.choice(colors) + "----------------------------CREATING SECURITY GROUP--------------------------")
         choice = int(input("Which Security Group Do you want to use?...\n1.PreCreated\n2.New One\nEnter Choice.... "))
         if choice == 1:
             security_group = input("Enter Security Group Name... ")
@@ -119,6 +124,10 @@ class AWS():
             for x in file:
                 print(x[1:-2])
                 self.sg_id = x[1:-2]
+            file.close()
+            subprocess.run(["rm","security_group_output.json","security_group_id.txt","-f"],check=True)
+
+
         elif choice == 2:
             group_name = input("Enter Group Name... ")
             description = input("Enter Description for your Security Group... ")
@@ -133,15 +142,16 @@ class AWS():
                 print(x[1:-2])
                 self.sg_id = x[1:-2]
             file.close()
+            subprocess.run(["rm","security_group.json","security_group_id.txt","-f"],check=True)
             protocol = input("Enter Protocol for your Security Group... ")
             port = input("Enter Port No for your Security Group... ")
             cidr = input("Enter CIDR block for your Security Group... ")
-            print("-----------------------------AUTHORIZING SECURITY GROUP---------------------------")
+            print(random.choice(colors) + "-----------------------------AUTHORIZING SECURITY GROUP---------------------------")
             subprocess.run(["aws","ec2","authorize-security-group-ingress" ,"--group-id",self.sg_id ,"--protocol", protocol, "--port" , port, "--cidr" , cidr],check=True)
 
 
     def CreateKeyPair(self):
-        print("--------------------------CREATING KEY PAIR------------------------------")
+        print(random.choice(colors) + "--------------------------CREATING KEY PAIR------------------------------")
         choice = int(input("Which Key do you want to use?\n1.PreCreated\n2.Create a New One.\nEnter Choice...."))
         if choice == 1:
             self.key_name = input("Enter PreCreated KeyPair Name... ")
@@ -150,12 +160,12 @@ class AWS():
             file_ = open(f'{self.key_name}.pem', 'w+')
             subprocess.run(["aws", "ec2" ,"create-key-pair" ,"--key-name" ,self.key_name , "--query" ,"KeyMaterial" ,"--output" ,"text" ],check=True, stdout=file_)
             file_.close()
-            print("--------------------------Changing KEY-FILE PERMISSIONS------------------------")
+            print(random.choice(colors) + "--------------------------Changing KEY-FILE PERMISSIONS------------------------")
             key_filename = self.key_name + ".pem"
             subprocess.run(["sudo", "chmod", "400", key_filename],check=True)
 
     def CreateRouteTable(self):
-        print("---------------------------CREATING ROUTE TABLE-----------------------------")
+        print(random.choice(colors) + "---------------------------CREATING ROUTE TABLE-----------------------------")
         file_ = open('route_table.json', 'w+')
         subprocess.run(["aws","ec2","create-route-table","--vpc-id",self.vpc_id], check=True, stdout=file_)
         file_.close()
@@ -167,7 +177,9 @@ class AWS():
             print(x[1:-2])
             self.route_table_id = x[1:-2]
         file.close()
-        print("---------------------------ATTACHING ROUTE TABLE-----------------------------")
+        subprocess.run(["rm","route_table.json","route_table_id.txt","-f"],check=True)
+
+        print(random.choice(colors) + "---------------------------ATTACHING ROUTE TABLE-----------------------------")
         destination_cidr_block=""
         choice = int(input("Enter Destination CIDR Block....\nDo you want to make it by \n1.Default[0.0.0.0/0]\n2.Custom\nEnter Choice... "))
         if choice == 1:
@@ -175,12 +187,12 @@ class AWS():
         elif choice == 2:
             destination_cidr_block = input("Enter Custom Destination CIDR Block.. ")
         subprocess.run(["aws","ec2","create-route","--route-table-id",self.route_table_id,"--destination-cidr-block",destination_cidr_block,"--gateway-id", self.igw],check=True)
-        print("--------------------------CHOOSE SUBNET FOR ROUTE TABLE------------------------")
+        print(random.choice(colors) + "--------------------------CHOOSE SUBNET FOR ROUTE TABLE------------------------")
         print("You have created following Subnets -: ")
         for i in range(len(self.cidr_subnet)):
             print(str(i+1) + "--->" + self.cidr_subnet[i])
         while choice == 1:
-            print("---------------------------ASSOCIATING SELECTED SUBNET TO ROUTE TABLE----------------------------")
+            print(random.choice(colors) + "---------------------------ASSOCIATING SELECTED SUBNET TO ROUTE TABLE----------------------------")
             ch = int(input("Choose one of the above subnets... "))
             print(ch)
             print(self.cidr_subnet[ch-1])
@@ -188,7 +200,7 @@ class AWS():
             choice = int(input("Do you want to associate more subnets..\n1.Yes\n2.No\nEnter Choice.. "))
 
     def CreateInternetGateway(self):
-        print("----------------------------CREATING INTERNET GATEWAY------------------------")
+        print(random.choice(colors) + "----------------------------CREATING INTERNET GATEWAY------------------------")
         file_ = open('igw.json', 'w+')
         subprocess.run(["aws","ec2","create-internet-gateway"],check=True,stdout=file_)
         file_.close()
@@ -200,13 +212,15 @@ class AWS():
             print(x[1:-2])
             self.igw = x[1:-2]
         file.close()
-        print("----------------------------ATTACHING INTERNET GATEWAY-----------------------")
+        subprocess.run(["rm","igw.json","igw_id.txt","-f"],check=True)
+
+        print(random.choice(colors) + "----------------------------ATTACHING INTERNET GATEWAY-----------------------")
         subprocess.run(["aws", "ec2", "attach-internet-gateway", "--vpc-id", self.vpc_id, "--internet-gateway-id", self.igw],check=True)
         AWS.CreateRouteTable(self)
 
 
     def CreateSubnet(self):
-        print("----------------------------CREATING SUBNET----------------------------------")
+        print(random.choice(colors) + "----------------------------CREATING SUBNET----------------------------------")
         choice = 1
         while choice == 1:
             cidr_subnet = input("Enter cidr block value.. ")
@@ -221,12 +235,13 @@ class AWS():
                 print(x[1:-2])
                 self.cidr_subnet.append(x[1:-2])
             file.close()
+            subprocess.run(["rm","subnet.json","subnet_id.txt","-f"],check=True)
             choice = int(input("Do you want to create more Subnets..?\n1.Yes\n2.No\nEnter Choice.. "))
 
         AWS.CreateInternetGateway(self)     
 
     def CreateVPC(self):
-        print("----------------------CREATING VIRTUAL PRIVATE CLOUD-----------------------")
+        print(random.choice(colors) + "----------------------CREATING VIRTUAL PRIVATE CLOUD-----------------------")
         self.cidr = input("Enter CIDR Block.... ")
         file_ = open('vpc_output.json', 'w+')
         subprocess.run(["aws", "ec2","create-vpc", "--cidr-block",self.cidr], check=True,stdout=file_)
@@ -238,18 +253,19 @@ class AWS():
         for x in file:
             print(x[1:-2])
             self.vpc_id = x[1:-2]
-
         file.close()
+        subprocess.run(["rm","vpc_output.json","vpc_id.txt","-f"],check=True)
+
         AWS.CreateSubnet(self)
 
 
     def ConfigureInstanceDetails(self):
-        print("----------------------CONFIGURING INSTANCE DETAILS-------------------------")
+        print(random.choice(colors) + "----------------------CONFIGURING INSTANCE DETAILS-------------------------")
         self.no_of_instance = input("Enter No of Instances... ")
         choice = int(input("Select Network (VPC).. \n1.Default\n2.Create a new One\nEnter Choice... "))
         if choice == 1:
             self.vpc = "default"
-            print("--------------------------PREPARING DEFAULT VPC--------------------------")
+            print(random.choice(colors) + "--------------------------PREPARING DEFAULT VPC--------------------------")
             file_ = open("vpc_output.json",'w+')
             subprocess.run(["aws","ec2","describe-vpcs"],stdout=file_,check=True)
             file_.close()
@@ -261,7 +277,9 @@ class AWS():
                 print(x[1:-2])
                 self.vpc_id = x[1:-2]
             file.close()
-            print("-----------------------PREPARING DEFAULT SUBNET-----------------------")
+            subprocess.run(["rm","vpc_output.json","vpc_default_id.txt","-f"],check=True)
+
+            print(random.choice(colors) + "-----------------------PREPARING DEFAULT SUBNET-----------------------")
             file_ = open("subnet_output.json",'w+')
             subprocess.run(["aws","ec2","describe-vpcs"],stdout=file_,check=True)
             file_.close()
@@ -272,12 +290,15 @@ class AWS():
             for x in file:
                 print(x[1:-2])
                 self.cidr_subnet[0] = x[1:-2]
+            file.close()
+            subprocess.run(["rm","subnet_output.json","subnet_default_id.txt","-f"],check=True)
+
         elif choice == 2:
             AWS.CreateVPC(self)
     
 
     def CreateEC2Instance(self):
-        print("--------------------------CREATING EC2 INSTANCE--------------------------")
+        print(random.choice(colors) + "--------------------------CREATING EC2 INSTANCE--------------------------")
         choice = 1
         while choice == 1:
             AWS.SelectAMIimage(self)
@@ -305,11 +326,13 @@ class AWS():
                 self.instance_id = x[1:-2]
             self.instance_ids.append(self.instance_id)
             file.close()
+            subprocess.run(["rm","instance_output.json","instance_id.txt","-f"],check=True)
             choice = int(input("Do you want to create more instances.......\n1.Yes\n2.No\nEnter Choice... "))
+        
 
 
     def DescribeEC2Instance(self):
-        print("-------------------------------DESCRIBING INSTANCE-----------------------------")
+        print(random.choice(colors) + "-------------------------------DESCRIBING INSTANCE-----------------------------")
         print("You have following instances running at current time....")
         i=0
         ch = 0
@@ -328,7 +351,7 @@ class AWS():
     def TerminateEC2Instance(self):
         sample = int(input("Do you want to stop it or terminate it...\n1.Stop\n2.Terminate\nEnter choice... "))
         if sample == 1:
-            print("---------------------------------STOPPING INSTANCE----------------------------")
+            print(random.choice(colors) + "---------------------------------STOPPING INSTANCE----------------------------")
             print("You have following instances running at current time....")
             i=0
             ch = 0
@@ -344,7 +367,7 @@ class AWS():
                 custom_id = input("Enter Custom Instance Id... ")
                 subprocess.run(["aws", "ec2", "stop-instances", "--instance-ids", custom_id],check=True)
         elif sample == 2:
-            print("---------------------------------STOPPING INSTANCE----------------------------")
+            print(random.choice(colors) + "---------------------------------TERMINATING INSTANCE----------------------------")
             print("You have following instances running at current time....")
             i=0
             ch = 0
@@ -364,7 +387,7 @@ class AWS():
             print("You Selected Nothing")
 
     def CreateEBSVolume(self):
-        print("-------------------------------CREATING EBS VOLUME--------------------------------")
+        print(random.choice(colors) + "-------------------------------CREATING EBS VOLUME--------------------------------")
         choice = int(input("Enter Volume Type... \n1.Default['gp2']\n2.Custom\nEnter Choice.. "))
         volume_type = ""
         if choice == 1:
@@ -385,7 +408,9 @@ class AWS():
             print(x)
             self.ebs_vol_id = x[1:-2]
         file.close()
-        print("---------------------------------ATTACHING EBS VOLUME-----------------------------")
+        subprocess.run(["rm","ebs_output.json","ebs_id.txt","-f"],check=True)
+
+        print(random.choice(colors) + "---------------------------------ATTACHING EBS VOLUME-----------------------------")
         device_name = input("Enter Device Name for Attached EBS Volume... ")
         device = "/dev/" + device_name
         print("You have following instances running at current time....")
@@ -406,7 +431,7 @@ class AWS():
 
 
     def CreateS3Bucket(self):
-        print("--------------------------------CREATING S3 BUCKET---------------------------------")
+        print(random.choice(colors) + "--------------------------------CREATING S3 BUCKET---------------------------------")
         self.bucket_name = input("Enter a unique Bucket name... ")
         region = input("Enter Region where you want to create your bucket... ")
         locationConstraint = "LocationConstraint=" + region
@@ -420,22 +445,24 @@ class AWS():
         for x in file:
             print(x[1:-2])
             self.s3_location = x[1:-2]
-
+        file.close()
+        subprocess.run(["rm","s3_output.json","s3_location.txt","-f"],check=True)
         choice = int(input("Do you Want to add Some Items in your S3 bucket.... \n1.Yes\n2.No"))
         while choice == 1:
-            print("--------------------------------ADDING ITEMS TO S3 BUCKET------------------------------")
+            print(random.choice(colors) + "--------------------------------ADDING ITEMS TO S3 BUCKET------------------------------")
             key_directory = input("Enter Key Directory... ")
             body_directory = input("Enter Location of Directory for your Item... ")
             subprocess.run(["aws" , "s3api" , "put-object" , "--bucket" ,  self.bucket_name , "--key" , key_directory , "--body" , body_directory],check=True)
             choice = int(input("Do you Want to add Some More Items in your S3 bucket.... \n1.Yes\n2.No"))
 
     def CreateCloudFront(self):
-        print("--------------------------------CREATING CLOUDFRONT---------------------------------")
+        print(random.choice(colors) + "--------------------------------CREATING CLOUDFRONT---------------------------------")
         self.domain_name = input("Enter Domain name for your CloudFront... ")
         self.root_object = input("Enter Default Root Object.. ")
         subprocess.run(["aws", "cloudfront" ,"create-distribution" ,"--origin-domain-name" , f"{self.domain_name}" ,"--default-root-object", self.root_object],check=True)
 
     def ConnectInstance(self):
+        print(random.choice(colors) + "-----------------------------------CONNECTING EC2-INSTANCE----------------------------------")
         choice = int(input("You have following instances running at current time....\nDo You want to try \n1.these ones \n2.Custom One\nEnter Choice.... "))
         i=0
         for i in range(len(self.instance_ids)):
@@ -453,6 +480,7 @@ class AWS():
             for x in file:
                 instance_ip = x[1:-2]
             file.close()
+            subprocess.run(["rm","instance_output.json","instance_ip.txt","-f"],check=True)
 
         elif choice == 2: 
             instance_ip = input("Enter IP of your Custom Instance... ")
@@ -478,6 +506,7 @@ class AWS():
                 print(result.output)
 
     def ConnectAnySystem(self):
+        print(random.choice(colors) + "-------------------------------------CONNECTING RANDOM SYSTEM---------------------------------")
         host_name = input("Enter IP of the System... ")
         username = input("Enter Username... ")
         password = getpass.getpass("Enter Password...  ")
@@ -500,15 +529,11 @@ class AWS():
                 result=""
 
 
-                
-                
-
-
 if __name__ == "__main__":
     a = AWS()
     choice = -1
     while True:
-        choice = int(input("What do you want to do in AWS.....?\n1.Install AWS Cli in your Linux System.\n2.Configure AWS for IAM User.\n3.Create EC2 Instance.\n4.Describe EC2 Instance\n5.Terminate or Stop EC2 Instance.\n6.Create EBS Storage and Attach it.\n7.Create S3 Bucket.\n8.Create CloudFront\n9.Connect to EC2 Instance.\n10.Connect to Any System.\n11.Exit.\nEnter Choice....."))
+        choice = int(input( random.choice(colors) + "What do you want to do in AWS.....?\n" +random.choice(colors) + "1.Install AWS Cli in your Linux System." + random.choice(colors) +"\n2.Configure AWS for IAM User." + random.choice(colors) + "\n3.Create EC2 Instance." + random.choice(colors)  + "\n4.Describe EC2 Instance\n" + random.choice(colors) + "5.Terminate or Stop EC2 Instance.\n" + random.choice(colors) + "6.Create EBS Storage and Attach it." + random.choice(colors) + "\n7.Create S3 Bucket." + random.choice(colors) + "\n8.Create CloudFront\n" + random.choice(colors) + "9.Connect to EC2 Instance.\n" + random.choice(colors) + "10.Connect to Any System.\n" + random.choice(colors) + "11.Exit." + random.choice(colors) + "\nEnter Choice....." + random.choice(colors)))
         if choice == 1:
             a.installAWSCliV2()
         elif choice == 2:
