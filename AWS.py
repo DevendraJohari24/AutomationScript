@@ -475,7 +475,7 @@ class AWS():
             subprocess.run(["aws", "ec2", "describe-instances", "--instance-ids", self.instance_ids[ch-1]],check=True,stdout=file_)
             file_.close()
             file = open("instance_ip.txt", "w+")
-            subprocess.run(["jq", ".Reservations[0].Instances[0].PrivateIpAddress","instance_output.json"],stdout=file, check=True)
+            subprocess.run(["jq", ".Reservations[0].Instances[0].PublicIpAddress","instance_output.json"],stdout=file, check=True)
             file.close()
             file = open("instance_ip.txt","r+")
             for x in file:
